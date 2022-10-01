@@ -1,5 +1,6 @@
 // Dependencies
 const axios = require("axios");
+const cors = require("cors");
 const bodyParser = require("body-parser");
 import * as express from 'express';
 
@@ -27,6 +28,8 @@ mongoose
 
     // Initialize express
 const app = express();
+
+app.use(cors());
 
 // Intialize web server with certificate
 const httpServer = createServer(
