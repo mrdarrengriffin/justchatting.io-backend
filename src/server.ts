@@ -57,7 +57,10 @@ app.use(bodyParser.json());
 
 // Register routes
 const userRoutes = require("./routes/auth/user");
+const infoRoutes = require("./routes/info");
+
 app.use("/user", userRoutes);
+app.use("/info", infoRoutes);
 
 // Allow any origin with SocketIO
 const io = new Server(httpServer, {
@@ -73,3 +76,4 @@ io.on("connection", (socket) => {
 });
 
 httpServer.listen(2083);
+console.log('Ready!');
