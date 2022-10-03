@@ -75,20 +75,45 @@ const io = new Server(httpServer, {
 
 // TESTING
 const tmiInstance = new tmi.Client({
-    channels: ['majijej'],
+    channels: [],
 });
 
 tmiInstance.connect();
 
+
 tmiInstance.on("message", (channel, tags, message, self) => {
-    io.to('wirtual').emit('chatMessage', { channel, tags, message });
+    io.to(channel.replace('#', '')).emit('chatMessage', { channel, tags, message });
 });
 
+let socketRooms = [];
+
 io.on("connection", (socket) => {
-    console.log("someone connected");
-    socket.join('wirtual');
-    socket.on('join', function(){
-        console.log('hi')
+    // Connect event
+    console.log(`[${socket.id}] Connected`);
+    
+    // Disconnect event
+    socket.on("disconnect", () => {
+        console.log(`[${socket.id}] Disconnected`);
+    });
+    
+    // Join room
+    socket.on('join', function(streamer){
+        if(!socketRooms[socket.id]){
+            socketRooms[socket.id] = [];
+        }
+
+        tmiInstance.join(streamer);
+
+        console.log(socketRooms);
+
+        socketRooms[socket.id].push(streamer);
+        socketRooms[socket.id].forEach(room => {
+            socket.leave(room);
+            console.log(`[${socket.id}] Stopped listening for ${room}`);
+        })
+        socket.join(streamer);
+        console.log(`[${socket.id}] Started listening for ${streamer}`);
+        
     })
 });
 
