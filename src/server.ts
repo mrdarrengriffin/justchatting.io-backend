@@ -75,7 +75,7 @@ const io = new Server(httpServer, {
 
 // TESTING
 const tmiInstance = new tmi.Client({
-    channels: ['caedrel'],
+    channels: ['majijej'],
 });
 
 tmiInstance.connect();
