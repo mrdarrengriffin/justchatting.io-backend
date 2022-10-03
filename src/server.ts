@@ -2,8 +2,8 @@
 const axios = require("axios");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const tmi = require("tmi.js");
 import * as express from 'express';
-
 
 const fs = require("fs");
 import mongoose from 'mongoose';
@@ -64,15 +64,32 @@ app.use("/info", infoRoutes);
 
 // Allow any origin with SocketIO
 const io = new Server(httpServer, {
+    allowEIO3: true,
     cors: {
-        origin: "*",
+        credentials: true,
+        origin: true,
     },
 });
 
 (global as any).io = io;
 
+// TESTING
+const tmiInstance = new tmi.Client({
+    channels: ['caedrel'],
+});
+
+tmiInstance.connect();
+
+tmiInstance.on("message", (channel, tags, message, self) => {
+    io.to('wirtual').emit('chatMessage', { channel, tags, message });
+});
+
 io.on("connection", (socket) => {
-    
+    console.log("someone connected");
+    socket.join('wirtual');
+    socket.on('join', function(){
+        console.log('hi')
+    })
 });
 
 httpServer.listen(2083);
