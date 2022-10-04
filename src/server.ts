@@ -80,7 +80,6 @@ const tmiInstance = new tmi.Client({
 
 tmiInstance.connect();
 
-
 tmiInstance.on("message", (channel, tags, message, self) => {
     io.to(channel.replace('#', '')).emit('chatMessage', { channel, tags, message });
 });
@@ -93,27 +92,38 @@ io.on("connection", (socket) => {
     
     // Disconnect event
     socket.on("disconnect", () => {
-        console.log(`[${socket.id}] Disconnected`);
+        // Eject user from all rooms
+        socketRooms[socket.id].forEach((room) => {
+            socket.leave(room);
+        });
+        // Delete user from rooms array
+        delete socketRooms[socket.id];
     });
     
     // Join room
     socket.on('join', function(streamer){
+        // If user not in rooms array, add them
         if(!socketRooms[socket.id]){
             socketRooms[socket.id] = [];
         }
 
-        tmiInstance.join(streamer);
+        // If we're not already listening for this streamer, join their chat
+        if(!tmiInstance.channels.includes('#' + streamer)){
+            tmiInstance.join(streamer);
+        }
 
-        console.log(socketRooms);
-
-        socketRooms[socket.id].push(streamer);
+        // Eject user from all rooms
+        // NOTE - This may be replaced when working on split-window chat
         socketRooms[socket.id].forEach(room => {
             socket.leave(room);
             console.log(`[${socket.id}] Stopped listening for ${room}`);
         })
-        socket.join(streamer);
-        console.log(`[${socket.id}] Started listening for ${streamer}`);
         
+        // Add the streamer to the socket room
+        socketRooms[socket.id].push(streamer);        
+        socket.join(streamer);
+
+        console.log(`[${socket.id}] Started listening for ${streamer}`);
     })
 });
 
