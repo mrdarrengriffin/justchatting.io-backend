@@ -56,11 +56,13 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 // Register routes
+const twitchEmotes = require("./routes/twitch/emotes");
 const userRoutes = require("./routes/auth/user");
 const infoRoutes = require("./routes/info");
 
 app.use("/user", userRoutes);
 app.use("/info", infoRoutes);
+app.use("/twitch/emotes", twitchEmotes);
 
 // Allow any origin with SocketIO
 const io = new Server(httpServer, {
@@ -93,6 +95,10 @@ io.on("connection", (socket) => {
     // Disconnect event
     socket.on("disconnect", () => {
         // Eject user from all rooms
+        console.log(socketRooms);
+        if(!socketRooms[socket.id]){
+            return
+        }
         socketRooms[socket.id].forEach((room) => {
             socket.leave(room);
         });
