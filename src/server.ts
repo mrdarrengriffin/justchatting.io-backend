@@ -3,10 +3,10 @@ const axios = require("axios");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const tmi = require("tmi.js");
-import * as express from 'express';
+import * as express from "express";
 
 const fs = require("fs");
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 // Improts
 const { createServer } = require("https");
@@ -26,7 +26,7 @@ mongoose
         console.log(e);
     });
 
-    // Initialize express
+// Initialize express
 const app = express();
 
 app.use(cors());
@@ -77,13 +77,66 @@ const io = new Server(httpServer, {
 
 // TESTING
 const tmiInstance = new tmi.Client({
-    channels: [],
+    identity: {
+        username: "JustChattingIO",
+        password: process.env.TWITCH_CHAT_OAUTH,
+    },
+    channels: ["mrdarrengriffin"],
 });
 
 tmiInstance.connect();
 
+// Temporary storage for music queue
+const playlists = [];
+
 tmiInstance.on("message", (channel, tags, message, self) => {
-    io.to(channel.replace('#', '')).emit('chatMessage', { channel, tags, message });
+    io.to(channel.replace("#", "")).emit("chatMessage", {
+        channel,
+        tags,
+        message,
+        self
+    });
+    // Only limit bot to one channel and user for now
+    if (
+        channel == "#mrdarrengriffin" &&
+        message.includes("!song") &&
+        tags.username == "mrdarrengriffin"
+    ) {
+        // Just text code, need to replace
+        var commandParts = message.split(" ");
+        if (commandParts.length < 2) {
+            tmiInstance.say(
+                tags.username,
+                `@${tags.username}, Please paste the song URL: !song <URL>`
+            );
+            return;
+        } else if (commandParts.length > 2) {
+            tmiInstance.say(
+                tags.username,
+                `@${tags.username}, We just need the URL: !song <URL>`
+            );
+            return;
+        }
+
+        // Check to see if playlist is created
+        if (playlists[channel.replace("#", "")] == undefined) {
+            playlists[channel.replace("#", "")] = [];
+        }
+
+        playlists[channel.replace("#", "")].push({username: tags.setTheUsername, url: commandParts[1] });
+
+        var playlistLength = playlists[channel.replace("#", "")].length;
+
+        // Emit playlist change to frontend
+        io.emit("playlistAdd", {username: tags.username, url: commandParts[1], timestamp: Date.now() });
+
+        tmiInstance.say(
+            channel,
+            `@${tags.username}, Song added to streamers playlist and is in position ${playlistLength}`
+        );
+
+        console.log(playlists);
+    }
 });
 
 let socketRooms = [];
@@ -91,13 +144,12 @@ let socketRooms = [];
 io.on("connection", (socket) => {
     // Connect event
     console.log(`[${socket.id}] Connected`);
-    
+
     // Disconnect event
     socket.on("disconnect", () => {
         // Eject user from all rooms
-        console.log(socketRooms);
-        if(!socketRooms[socket.id]){
-            return
+        if (!socketRooms[socket.id]) {
+            return;
         }
         socketRooms[socket.id].forEach((room) => {
             socket.leave(room);
@@ -105,33 +157,33 @@ io.on("connection", (socket) => {
         // Delete user from rooms array
         delete socketRooms[socket.id];
     });
-    
+
     // Join room
-    socket.on('join', function(streamer){
+    socket.on("join", function (streamer) {
         // If user not in rooms array, add them
-        if(!socketRooms[socket.id]){
+        if (!socketRooms[socket.id]) {
             socketRooms[socket.id] = [];
         }
 
         // If we're not already listening for this streamer, join their chat
-        if(!tmiInstance.channels.includes('#' + streamer)){
+        if (!tmiInstance.channels.includes("#" + streamer)) {
             tmiInstance.join(streamer);
         }
 
         // Eject user from all rooms
         // NOTE - This may be replaced when working on split-window chat
-        socketRooms[socket.id].forEach(room => {
+        socketRooms[socket.id].forEach((room) => {
             socket.leave(room);
             console.log(`[${socket.id}] Stopped listening for ${room}`);
-        })
-        
+        });
+
         // Add the streamer to the socket room
-        socketRooms[socket.id].push(streamer);        
+        socketRooms[socket.id].push(streamer);
         socket.join(streamer);
 
         console.log(`[${socket.id}] Started listening for ${streamer}`);
-    })
+    });
 });
 
 httpServer.listen(2083);
-console.log('Ready!');
+console.log("Ready!");
