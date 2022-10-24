@@ -94,7 +94,7 @@ tmiInstance.on("message", (channel, tags, message, self) => {
         channel,
         tags,
         message,
-        self
+        self,
     });
     // Only limit bot to one channel and user for now
     if (
@@ -123,12 +123,19 @@ tmiInstance.on("message", (channel, tags, message, self) => {
             playlists[channel.replace("#", "")] = [];
         }
 
-        playlists[channel.replace("#", "")].push({username: tags.setTheUsername, url: commandParts[1] });
+        playlists[channel.replace("#", "")].push({
+            username: tags.setTheUsername,
+            url: commandParts[1],
+        });
 
         var playlistLength = playlists[channel.replace("#", "")].length;
 
         // Emit playlist change to frontend
-        io.emit("playlistAdd", {username: tags.username, url: commandParts[1], timestamp: Date.now() });
+        io.emit("playlistAdd", {
+            username: tags.username,
+            url: commandParts[1],
+            timestamp: Date.now(),
+        });
 
         tmiInstance.say(
             channel,
@@ -167,7 +174,19 @@ io.on("connection", (socket) => {
 
         // If we're not already listening for this streamer, join their chat
         if (!tmiInstance.channels.includes("#" + streamer)) {
-            tmiInstance.join(streamer);
+            tmiInstance
+                .join(streamer)
+                .then(() => {
+                    console.log(
+                        `[${socket.id}] Joined chat room ${streamer} successfully`
+                    );
+                    tmiInstance.color('yellowgreen');
+                })
+                .catch((err) => {
+                    console.log(
+                        `[${socket.id}] Error joining room ${streamer}: ${err}`
+                    );
+                });
         }
 
         // Eject user from all rooms
