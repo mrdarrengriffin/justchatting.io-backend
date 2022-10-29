@@ -1,8 +1,11 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import {
+    SlashCommandBuilder,
+    ChatInputCommandInteraction,
+    EmbedBuilder,
+} from "discord.js";
 import DiscordBotCommand from "../../../bot-command";
-import DiscordBotModule from "../../../bot-module";
 import WordleModule from "../module";
-
+import { IWordleGame } from "../interfaces/WordleGame";
 class WordleGuessCommand extends DiscordBotCommand {
     games: {
         user: string;
@@ -19,37 +22,55 @@ class WordleGuessCommand extends DiscordBotCommand {
             .setName("guess")
             .setDescription("Guess a word in the Wordle game")
             .addStringOption((option) =>
-                option.setName("word").setDescription("The word to guess").setRequired(true)
+                option
+                    .setName("word")
+                    .setDescription("The word to guess")
+                    .setRequired(true)
             );
     }
 
     async execute(interaction: ChatInputCommandInteraction) {
-        const word = interaction.options.getString('word');
-
-        if(word.length !== 5){
-            interaction.reply('Your guess must be 5 letters long!');
+        if (!this.module.gameExistsForUser(interaction.user)) {
+            await interaction.reply(
+                "You don't have a game in progress. Use the /wordle to start a game."
+            );
             return;
         }
 
-        if(!this.module.wordleWords.includes(word)){
-            interaction.reply('That is not a valid word!');
+        const word = interaction.options.getString("word");
+
+        if (word.length !== 5) {
+            interaction.reply("Your guess must be 5 letters long!");
             return;
         }
 
-        
-        let game = this.module.games.find((game) => game.user == interaction.user.username);
-
-        if(word == game.word){
-            interaction.reply('You guessed the word! You win!');
+        if (!this.module.wordleWords.includes(word)) {
+            interaction.reply("That is not a valid word!");
             return;
         }
-        
+
+        let game: IWordleGame = this.module.games.find(
+            (game) => game.user.username == interaction.user.username
+        );
+
         game.guesses.push(word);
 
-        this.module.drawBoard(interaction.user.username, interaction);
-        
-    }
+        if (word == game.word) {
+            game.state = "win";
+            await interaction.reply({ embeds: [this.module.getBoardEmbed(game)] });
+            //this.module.destroyGame(game);
+            return;
+        }
 
+        if (game.guesses.length == 5) {
+            game.state = "fail";
+            await interaction.reply({ embeds: [this.module.getBoardEmbed(game)] });
+            //this.module.destroyGame(game);
+            return;
+        }
+
+        await interaction.reply({ embeds: [this.module.getBoardEmbed(game)] });
+    }
 }
 
 export default WordleGuessCommand;

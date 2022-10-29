@@ -1,22 +1,26 @@
-import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { EmbedBuilder, User } from "discord.js";
 import DiscordBotModule from "../../bot-module";
 import * as fs from "fs";
 import * as path from "path";
-const { loadImage, createCanvas } = require("canvas");
 import WordleWordleCommand from "./commands/wordle";
 import WordleLetterTestCommand from "./commands/letter-test";
 import DiscordBot from "../../bot";
 import WordleGuessCommand from "./commands/guess";
+import { IWordleGame } from "./interfaces/WordleGame";
 
+export enum WORDLE_GAME_STATE {
+    IDLE,
+    PLAYING,
+    FAIL,
+    WIN,
+}
 class WordleModule extends DiscordBotModule {
     discordBot: DiscordBot;
     letters = require("./helpers/letters");
-    games: {
-        user: string;
-        word: string;
-        guesses: string[];
-    }[] = [];
+    games: IWordleGame[] = [];
+    
     wordleWords: string[];
+
 
     constructor() {
         super(__dirname);
@@ -41,35 +45,103 @@ class WordleModule extends DiscordBotModule {
         ];
     }
 
-    drawBoard(username: string, interaction: ChatInputCommandInteraction) {
+    gameExistsForUser(user: User) {
+        return (
+            this.games &&
+            this.games.filter((game) => game.user.username == user.username).length > 0
+        );
+    }
+
+    getBoardEmbed(game: IWordleGame) {
         const embed = new EmbedBuilder();
 
-        const game = this.games.find((game) => game.user == username);
-
-        if (!game) {
-            interaction.reply("You don't have a game in progress!");
-            return;
+        let emojiRows = [];
+        for (let i = 0; i < 5; i++) {
+            emojiRows[i] = [];
+            for (let j = 0; j < 5; j++) {
+                emojiRows[i][j] = this.letters.blank;
+            }
         }
 
-        let emojiRows = [];
+        game.guesses.forEach((word, wordIndex) => {
+            const correctWordSplit = game.word.split("");
+            const currentWordSplit = word.split("");
 
-        game.guesses.forEach((word) => {
-            let emojiRow = [];
-
-            word.split("").forEach((letter) => {
-                emojiRow.push(this.letters.grey[letter]);
+            let letterCounts = {};
+            correctWordSplit.forEach((letter, letterIndex) => {
+                if (!letterCounts[letter]) {
+                    letterCounts[letter] = { count: 1, guessed: 0 };
+                } else {
+                    letterCounts[letter].count = letterCounts[letter].count + 1;
+                }
             });
 
-            emojiRows.push(emojiRow.join(""));
-        });
-        console.log(emojiRows);
-   
-        embed.addFields({
-            value: emojiRows.join("\n"),
-            name: "Wordle"
+            currentWordSplit.forEach((letter, letterIndex) => {
+                let letterEmoji;
+
+                if (letter == correctWordSplit[letterIndex]) {
+                    // GREEN: Letter is in word and in correct position
+                    letterEmoji = this.letters.green[letter];
+                } else if (correctWordSplit.includes(letter)) {
+                    // YELLOW: Letter is in word but in the incorrect position
+                    letterEmoji = this.letters.yellow[letter];
+                } else {
+                    // GREY: Letter is not in the word
+                    letterEmoji = this.letters.grey[letter];
+                }
+
+                if (letterCounts[letter] !== undefined) {
+                    letterCounts[letter].guessed =
+                        letterCounts[letter].guessed + 1;
+                }
+
+                emojiRows[wordIndex][letterIndex] = letterEmoji;
+            });
+
+            currentWordSplit.forEach((letter, letterIndex) => {
+                if (
+                    correctWordSplit.includes(letter) &&
+                    letterCounts[letter].guessed > letterCounts[letter].count
+                ) {
+                    emojiRows[wordIndex][letterIndex] =
+                        this.letters.grey[letter];
+                    letterCounts[letter].guessed =
+                        letterCounts[letter].guessed - 1;
+                }
+            });
         });
 
-        interaction.reply({ embeds: [embed] }).catch(error => { console.log(error); });
+        embed.setAuthor({name: game.user.username, iconURL: game.user.avatarURL()});
+
+        let description = emojiRows.map((rows) => rows.join("")).join("\n");
+        if(game.state == "win") {
+            description += "\n\nCongratulations! You won!";
+        }else if(game.state == "fail") {
+            description += "\n\nYou ran out of guesses! The word was: " + game.word;
+        }else{
+            description += "\n\nUse /guess <word> to try and solve the puzzle";
+        }
+
+        embed.setDescription(description);
+
+
+
+        return embed;
+    }
+
+    destroyGame(game) {
+        this.games = this.games.filter((g) => g.user !== game.user);
+    }
+
+    getGamesWithoutAnswer() {
+        return this.games.map((game) => {
+            return {
+                user: game.user.username,
+                word: game.word,
+                guesses: game.guesses,
+                state: game.state
+            }    
+        });
     }
 }
 

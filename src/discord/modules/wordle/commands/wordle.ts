@@ -1,6 +1,7 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, User } from "discord.js";
 import DiscordBotCommand from "../../../bot-command";
-import WordleModule from "../module";
+import { IWordleGame } from "../interfaces/WordleGame";
+import WordleModule, { WORDLE_GAME_STATE } from "../module";
 
 class WordleWordleCommand extends DiscordBotCommand {
 
@@ -16,37 +17,32 @@ class WordleWordleCommand extends DiscordBotCommand {
     }
 
     async execute(interaction: ChatInputCommandInteraction) {
-        const existingGame = this.gameExistsForUser(interaction.user.username);
+        const existingGame = this.module.gameExistsForUser(interaction.user);
         if(existingGame){
-            console.log(this.module.games, interaction.user.username);
             await interaction.reply('You already have a game in progress! If you want to start a new game, use the /wordle command again.');
             return;
         }
 
-        this.startNewGame(interaction.user.username);
+        const game = this.startNewGame(interaction.user);
 
-        interaction.reply('Heck yeah, let\'s go!').then(interactionResponse => {
-            console.log(interactionResponse);
-        })
-    }
+        interaction.reply({ embeds: [this.module.getBoardEmbed(game)] });
+    }  
 
-    gameExistsForUser(user){
-        return !this.module.games && !!this.module.games.filter((game) => game.user == user);
-    }
+    startNewGame(user: User) {
+        this.module.games = this.module.games.filter((game) => game.user.username !== user.username);
 
-    startNewGame(user: string) {
-        this.module.games = this.module.games.filter((game) => game.user !== user);
-
-        //const word = this.module.pickRandomWord();
         const word = this.module.pickRandomWord();
 
-        this.module.games.push({
+        const game: IWordleGame = {
             user,
-            word,
+            word, 
+            state: 'playing',
             guesses: [],
-        });
+        };
 
-        return "ok";
+        this.module.games.push(game);
+
+        return game;
     }
 }
 

@@ -90,7 +90,7 @@ discordBot.connect();
 // Listen for board events to serve the game state image
 app.use("/wordle", async (req, res) => {
 
-      res.status(201).json(wordleModule.games);
+      res.status(201).json(wordleModule.getGamesWithoutAnswer());
 });
 
 
