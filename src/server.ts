@@ -7,6 +7,8 @@ import * as express from "express";
 
 const fs = require("fs");
 import mongoose from "mongoose";
+import DiscordBot from "./discord/bot";
+import WordleModule from "./discord/modules/wordle/module";
 
 // Improts
 const { createServer } = require("https");
@@ -74,6 +76,23 @@ const io = new Server(httpServer, {
 });
 
 (global as any).io = io;
+
+// Initialise Discord Bot
+const discordBot = new DiscordBot();
+
+// Initialise Discord Wordle
+const wordleModule = new WordleModule();
+
+discordBot.registerModule(wordleModule);
+discordBot.registerCommands();
+discordBot.connect();
+
+// Listen for board events to serve the game state image
+app.use("/wordle", async (req, res) => {
+
+      res.status(201).json(wordleModule.games);
+});
+
 
 // TESTING
 const tmiInstance = new tmi.Client({
