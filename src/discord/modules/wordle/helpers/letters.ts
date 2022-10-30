@@ -1,4 +1,6 @@
-module.exports = {
+import { IWordleLetters } from "../interfaces/Letters";
+
+const letters: IWordleLetters = {
     blank: '◼️',
     green: {
         a: "<:1f1e6:1035526313085239336>",
@@ -85,3 +87,5 @@ module.exports = {
         z: "<:1f1ff:1035526456626925569>",
     }
 };
+
+module.exports = letters;

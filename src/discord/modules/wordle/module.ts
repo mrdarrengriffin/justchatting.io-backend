@@ -3,10 +3,11 @@ import DiscordBotModule from "../../bot-module";
 import * as fs from "fs";
 import * as path from "path";
 import WordleWordleCommand from "./commands/wordle";
-import WordleLetterTestCommand from "./commands/letter-test";
 import DiscordBot from "../../bot";
-import WordleGuessCommand from "./commands/guess";
 import { IWordleGame } from "./interfaces/WordleGame";
+import WordleGuessCommand from "./commands/wordle/guess";
+import WordleNewCommand from "./commands/wordle/new";
+import { IWordleLetters } from "./interfaces/Letters";
 
 export enum WORDLE_GAME_STATE {
     IDLE,
@@ -16,17 +17,19 @@ export enum WORDLE_GAME_STATE {
 }
 class WordleModule extends DiscordBotModule {
     discordBot: DiscordBot;
-    letters = require("./helpers/letters");
+    letters: IWordleLetters = require("./helpers/letters");
     games: IWordleGame[] = [];
-    
-    wordleWords: string[];
 
+    wordleWords: string[];
 
     constructor() {
         super(__dirname);
-        this.declareCommand(new WordleWordleCommand(this));
-        this.declareCommand(new WordleGuessCommand(this));
-        this.declareCommand(new WordleLetterTestCommand(this));
+
+        this.declareCommand(new WordleWordleCommand(this), [
+            new WordleNewCommand(this),
+            new WordleGuessCommand(this),
+        ]);
+
         console.log(this.letters.green.a);
         this.loadWords();
     }
@@ -48,8 +51,31 @@ class WordleModule extends DiscordBotModule {
     gameExistsForUser(user: User) {
         return (
             this.games &&
-            this.games.filter((game) => game.user.username == user.username && game.state == "playing").length > 0
+            this.games.filter(
+                (game) =>
+                    game.user.username == user.username &&
+                    game.state == "playing"
+            ).length > 0
         );
+    }
+
+    startNewGame(user: User) {
+        //const word = this.pickRandomWord();
+        const word = 'panda'
+
+        const game: IWordleGame = {
+            id: Math.random().toString(36).substr(2, 9),
+            lastUpdated: new Date(),
+            user,
+            word,
+            state: 'playing',
+            guesses: [],
+            board: [],
+        };
+
+        this.games.push(game);
+
+        return game;
     }
 
     getBoardEmbed(game: IWordleGame) {
@@ -60,6 +86,14 @@ class WordleModule extends DiscordBotModule {
             emojiRows[i] = [];
             for (let j = 0; j < 5; j++) {
                 emojiRows[i][j] = this.letters.blank;
+            }
+        }
+
+        let stateRows = [];
+        for (let i = 0; i < 5; i++) {
+            stateRows[i] = [];
+            for (let j = 0; j < 5; j++) {
+                stateRows[i][j] = 0;
             }
         }
 
@@ -78,16 +112,20 @@ class WordleModule extends DiscordBotModule {
 
             currentWordSplit.forEach((letter, letterIndex) => {
                 let letterEmoji;
+                let letterState;
 
                 if (letter == correctWordSplit[letterIndex]) {
                     // GREEN: Letter is in word and in correct position
                     letterEmoji = this.letters.green[letter];
+                    letterState = 3;
                 } else if (correctWordSplit.includes(letter)) {
                     // YELLOW: Letter is in word but in the incorrect position
                     letterEmoji = this.letters.yellow[letter];
+                    letterState = 2;
                 } else {
                     // GREY: Letter is not in the word
                     letterEmoji = this.letters.grey[letter];
+                    letterState = 1;
                 }
 
                 if (letterCounts[letter] !== undefined) {
@@ -96,6 +134,7 @@ class WordleModule extends DiscordBotModule {
                 }
 
                 emojiRows[wordIndex][letterIndex] = letterEmoji;
+                stateRows[wordIndex][letterIndex] = letterState;
             });
 
             currentWordSplit.forEach((letter, letterIndex) => {
@@ -105,20 +144,27 @@ class WordleModule extends DiscordBotModule {
                 ) {
                     emojiRows[wordIndex][letterIndex] =
                         this.letters.grey[letter];
+                    stateRows[wordIndex][letterIndex] = 1;
                     letterCounts[letter].guessed =
                         letterCounts[letter].guessed - 1;
                 }
             });
         });
 
-        embed.setAuthor({name: game.user.username, iconURL: game.user.avatarURL()});
+        game.board = stateRows;
+
+        embed.setAuthor({
+            name: game.user.username,
+            iconURL: game.user.avatarURL(),
+        });
 
         let description = emojiRows.map((rows) => rows.join("")).join("\n");
-        if(game.state == "win") {
+        if (game.state == "win") {
             description += "\n\nCongratulations! You won!";
-        }else if(game.state == "fail") {
-            description += "\n\nYou ran out of guesses! The word was: " + game.word;
-        }else{
+        } else if (game.state == "fail") {
+            description +=
+                "\n\nYou ran out of guesses! The word was: " + game.word;
+        } else {
             description += "\n\nUse /guess <word> to try and solve the puzzle";
         }
 
@@ -134,12 +180,19 @@ class WordleModule extends DiscordBotModule {
     getGamesWithoutAnswer() {
         return this.games.map((game) => {
             return {
-                user: game.user.username,
+                id: game.id,
+                lastUpdated: game.lastUpdated,
+                user: {username: game.user.username, avatar: game.user.avatarURL()},
                 word: game.word,
                 guesses: game.guesses,
-                state: game.state
-            }    
+                board: game.board,
+                state: game.state,
+            };
         });
+    }
+
+    updateIORoom(){
+        this.discordBot.io.to('wordle').emit('wordleUpdate', this.getGamesWithoutAnswer());
     }
 }
 

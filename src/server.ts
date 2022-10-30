@@ -79,17 +79,15 @@ const io = new Server(httpServer, {
 
 // Initialise Discord Bot
 const discordBot = new DiscordBot();
-
+discordBot.io = io;
 // Initialise Discord Wordle
 const wordleModule = new WordleModule();
 
 discordBot.registerModule(wordleModule);
 discordBot.registerCommands();
-discordBot.connect();
 
 // Listen for board events to serve the game state image
 app.use("/wordle", async (req, res) => {
-
       res.status(201).json(wordleModule.getGamesWithoutAnswer());
 });
 
@@ -182,6 +180,15 @@ io.on("connection", (socket) => {
         });
         // Delete user from rooms array
         delete socketRooms[socket.id];
+    });
+
+    // Wordle - Subscribe
+    socket.on("wordleSubscribe", () => {
+        socket.join('wordle');
+    });
+    // Wordle - Unsubscribe
+    socket.on("wordleUnsubscribe", () => {
+        socket.leave('wordle');
     });
 
     // Join room

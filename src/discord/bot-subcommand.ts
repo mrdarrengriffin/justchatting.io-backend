@@ -1,9 +1,9 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, SlashCommandSubcommandBuilder } from "discord.js";
 import DiscordBotModule from "./bot-module";
 
-abstract class DiscordBotCommand {
+abstract class DiscordBotSubcommand {
 
-    command: SlashCommandBuilder;
+    command: SlashCommandSubcommandBuilder;
     module: DiscordBotModule;
 
     constructor(module: DiscordBotModule){
@@ -15,4 +15,4 @@ abstract class DiscordBotCommand {
     }
 }
 
-export default DiscordBotCommand;
+export default DiscordBotSubcommand;
