@@ -21,6 +21,7 @@ class WordleModule extends DiscordBotModule {
     games: IWordleGame[] = [];
 
     wordleWords: string[];
+    wordleAcceptableWords: string[];
 
     constructor() {
         super(__dirname);
@@ -40,6 +41,12 @@ class WordleModule extends DiscordBotModule {
         );
         const words = wordsFile.toString().split("\n");
         this.wordleWords = words;
+
+        const acceptableWordsFile = fs.readFileSync(
+            path.join(__dirname, "/wordle-acceptable.txt")
+        );
+        const acceptableWords = acceptableWordsFile.toString().split("\n");
+        this.wordleAcceptableWords = acceptableWords;
     }
 
     pickRandomWord(): string {
@@ -60,8 +67,7 @@ class WordleModule extends DiscordBotModule {
     }
 
     startNewGame(user: User) {
-        //const word = this.pickRandomWord();
-        const word = 'panda'
+        const word = this.pickRandomWord();
 
         const game: IWordleGame = {
             id: Math.random().toString(36).substr(2, 9),

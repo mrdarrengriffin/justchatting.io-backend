@@ -40,7 +40,7 @@ class WordleGuessCommand extends DiscordBotSubCommand {
             return;
         }
 
-        if (!this.module.wordleWords.includes(word)) {
+        if (!this.module.wordleAcceptableWords.includes(word) && !this.module.wordleWords.includes(word)) {
             interaction.reply("That is not a valid word!");
             return;
         }
