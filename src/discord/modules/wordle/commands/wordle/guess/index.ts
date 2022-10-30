@@ -56,20 +56,20 @@ class WordleGuessCommand extends DiscordBotSubCommand {
 
         if (word == game.word) {
             game.state = "win";
-            this.module.updateIORoom();
             await interaction.reply({
                 embeds: [this.module.getBoardEmbed(game)],
             });
+            this.module.updateIORoom();
             //this.module.destroyGame(game);
             return;
         }
 
         if (game.guesses.length == 5) {
             game.state = "fail";
-            this.module.updateIORoom();
             await interaction.reply({
                 embeds: [this.module.getBoardEmbed(game)],
             });
+            this.module.updateIORoom();
             //this.module.destroyGame(game);
             return;
         }
