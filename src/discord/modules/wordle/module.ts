@@ -48,7 +48,7 @@ class WordleModule extends DiscordBotModule {
     gameExistsForUser(user: User) {
         return (
             this.games &&
-            this.games.filter((game) => game.user.username == user.username).length > 0
+            this.games.filter((game) => game.user.username == user.username && game.state == "playing").length > 0
         );
     }
 
@@ -123,8 +123,6 @@ class WordleModule extends DiscordBotModule {
         }
 
         embed.setDescription(description);
-
-
 
         return embed;
     }
