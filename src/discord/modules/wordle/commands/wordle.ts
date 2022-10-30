@@ -34,6 +34,7 @@ class WordleWordleCommand extends DiscordBotCommand {
         const word = this.module.pickRandomWord();
 
         const game: IWordleGame = {
+            id: Math.random().toString(36).substr(2, 9),
             user,
             word, 
             state: 'playing',

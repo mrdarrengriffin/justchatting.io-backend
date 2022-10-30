@@ -50,7 +50,7 @@ class WordleGuessCommand extends DiscordBotCommand {
         }
 
         let game: IWordleGame = this.module.games.find(
-            (game) => game.user.username == interaction.user.username
+            (game) => game.user.username == interaction.user.username && game.state == "playing"
         );
 
         game.guesses.push(word);

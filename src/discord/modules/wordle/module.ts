@@ -128,7 +128,7 @@ class WordleModule extends DiscordBotModule {
     }
 
     destroyGame(game) {
-        this.games = this.games.filter((g) => g.user !== game.user);
+        this.games = this.games.filter((g) => g.id !== game.id);
     }
 
     getGamesWithoutAnswer() {
