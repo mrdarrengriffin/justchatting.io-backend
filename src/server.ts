@@ -185,6 +185,7 @@ io.on("connection", (socket) => {
     // Wordle - Subscribe
     socket.on("wordleSubscribe", () => {
         socket.join('wordle');
+        wordleModule.updateIORoom();
     });
     // Wordle - Unsubscribe
     socket.on("wordleUnsubscribe", () => {
