@@ -75,8 +75,8 @@ class WordleGuessCommand extends DiscordBotSubCommand {
         }
 
         
-        this.module.updateIORoom();
         await interaction.reply({ embeds: [this.module.getBoardEmbed(game)] });
+        this.module.updateIORoom();
     }
 }
 
