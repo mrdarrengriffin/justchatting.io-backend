@@ -18,6 +18,7 @@ class DiscordBot {
     constructor() {
         // Create the client instance
         this.client = new Client({ intents: [GatewayIntentBits.Guilds] });
+        
         // Attempt to login
         this.client.login(process.env.DISCORD_TOKEN);
 
@@ -84,7 +85,7 @@ class DiscordBot {
         // Delete all guild commands
         await rest
             .put(
-                Routes.applicationGuildCommands(
+                Routes.applicationCommand(
                     process.env.DISCORD_CLIENT_ID,
                     process.env.DISCORD_GUILD_ID
                 ),
