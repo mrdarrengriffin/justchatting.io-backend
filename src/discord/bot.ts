@@ -85,9 +85,8 @@ class DiscordBot {
         // Delete all commands
         await rest
             .put(
-                Routes.applicationCommand(
-                    process.env.DISCORD_CLIENT_ID,
-                    process.env.DISCORD_GUILD_ID
+                Routes.applicationCommands(
+                    process.env.DISCORD_CLIENT_ID
                 ),
                 {
                     body: [],
@@ -117,9 +116,8 @@ class DiscordBot {
                 // The put method is used to fully refresh all commands in the guild with the current set
                 await rest
                     .put(
-                        Routes.applicationCommand(
-                            process.env.DISCORD_CLIENT_ID,
-                            process.env.DISCORD_GUILD_ID
+                        Routes.applicationCommands(
+                            process.env.DISCORD_CLIENT_ID
                         ),
                         { body: commandsJson }
                     )
